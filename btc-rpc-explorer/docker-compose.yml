@@ -3,33 +3,61 @@ version: "3.7"
 services:
   app_proxy:
     environment:
+      # <app-id>_<web-container-name>_1
+      # e.g. 'btc-rpc-explorer_web_1'
+      # Note that the '_1' at the end is needed
       APP_HOST: btc-rpc-explorer_web_1
       APP_PORT: 8080
 
   web:
-    image: getumbrel/btc-rpc-explorer:v3.5.1@sha256:ebf4cdafc189761b909bb3e211b01a6b50d2f08097f3493543ed9c3174d83d89
+    image: getumbrel/btc-rpc-explorer:v2.0.2@sha256:f8ba8b97e550f65e5bc935d7516cce7172910e9009f3154a434c7baf55e82a2b
     restart: on-failure
     stop_grace_period: 1m
+    ports:
+      # You do not need to expose the port that your app's web server is listening on if you're using the app_proxy service.
+      # This is handled by the APP_HOST and APP_PORT environment variables in the service above.
+      #
+      # If you need to expose additional ports, you can do so like this, replacing <port> with the port number:
+      - <port>:<port>
+    volumes:
+      # Uncomment to mount your data directories inside
+      # the Docker container for storing persistent data
+      # - ${APP_DATA_DIR}/foo:/foo
+      # - ${APP_DATA_DIR}/bar:/bar
+      #
+      # Uncomment to mount LND's data directory as read-only
+      # inside the Docker container at path /lnd
+      # - ${APP_LIGHTNING_NODE_DATA_DIR}:/lnd:ro
+      #
+      # Uncomment to mount Bitcoin Core's data directory as
+      # read-only inside the Docker container at path /bitcoin
+      # - ${APP_BITCOIN_DATA_DIR}:/bitcoin:ro
     environment:
-      # Docker requirements
-      BTCEXP_HOST: 0.0.0.0
+      # Pass any environment variables to your app for configuration in the form:
+      # VARIABLE_NAME: value
       BTCEXP_PORT: 8080
-      # Bitcoin Core
+      # Bitcoin Core connection details
       BTCEXP_BITCOIND_HOST: $APP_BITCOIN_NODE_IP
       BTCEXP_BITCOIND_PORT: $APP_BITCOIN_RPC_PORT
       BTCEXP_BITCOIND_USER: $APP_BITCOIN_RPC_USER
       BTCEXP_BITCOIND_PASS: $APP_BITCOIN_RPC_PASS
-      # Electrum
-      BTCEXP_ADDRESS_API: electrumx
+
+      # Electrum connection details
       BTCEXP_ELECTRUMX_SERVERS: "tcp://$APP_ELECTRS_NODE_IP:$APP_ELECTRS_NODE_PORT"
-      # Log level
+
+      # App Config
+      BTCEXP_HOST: 0.0.0.0
       DEBUG: "btcexp:*,electrumClient"
-      # Performance
+      BTCEXP_ADDRESS_API: electrumx
       BTCEXP_SLOW_DEVICE_MODE: "true"
       BTCEXP_NO_INMEMORY_RPC_CACHE: "true"
-      # Privacy
       BTCEXP_PRIVACY_MODE: "true"
       BTCEXP_NO_RATES: "true"
-      # Disable RPC
       BTCEXP_RPC_ALLOWALL: "false"
-      BTCEXP_BASIC_AUTH_PASSWORD: ${APP_PASSWORD}
+      BTCEXP_BASIC_AUTH_PASSWORD: ""  
+
+  # If your app has more services, like a database container, you can define those
+  # services below:
+  # db:
+  #   image: <docker-image>:<tag>@sha256:<digest>
+  #   ...
